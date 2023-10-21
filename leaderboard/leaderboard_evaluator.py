@@ -46,6 +46,20 @@ sensors_to_icons = {
 }
 
 
+class timeout:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+    def handle_timeout(self, _signum, _frame):
+        print(self.error_message)
+        raise TimeoutError(self.error_message)
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
+
+
 class LeaderboardEvaluator(object):
 
     """
@@ -142,7 +156,7 @@ class LeaderboardEvaluator(object):
 
         if hasattr(self, 'agent_instance') and self.agent_instance:
             self.agent_instance.destroy()
-            self.agent_instance = None
+            #self.agent_instance = None
 
         if hasattr(self, 'statistics_manager') and self.statistics_manager:
             self.statistics_manager.scenario = None
@@ -198,11 +212,12 @@ class LeaderboardEvaluator(object):
         """
         Computes and saves the route statistics
         """
-        print("\033[1m> Registering the route statistics\033[0m")
+        print("\033[1m> START Registering the route statistics\033[0m")
         self.statistics_manager.compute_route_statistics(
             config, self.manager.scenario_duration_system, self.manager.scenario_duration_game, crash_message
         )
         self.statistics_manager.save_entry_status(entry_status)
+        print("\033[1m> DONE Registering the route statistics\033[0m")
 
     def _load_and_run_scenario(self, args, config):
         """
@@ -366,7 +381,7 @@ class LeaderboardEvaluator(object):
 
             # Run the scenario
             config = route_indexer.get_next_config()
-            crashed = self._load_and_run_scenario(args, config)
+            crashed = self._load_and_run_scenario(args, config)            
 
             # Save the progress and remove the scenario
             self.statistics_manager.save_progress(route_indexer.index, route_indexer.total)
@@ -380,9 +395,15 @@ class LeaderboardEvaluator(object):
             self._ros1_server.shutdown()
 
         # Save global statistics
-        print("\033[1m> Registering the global statistics\033[0m")
+        print("\033[1m> START Registering the global statistics\033[0m")
         self.statistics_manager.compute_global_statistics()
         self.statistics_manager.validate_and_write_statistics(self.sensors_initialized, crashed)
+        print("\033[1m> DONE Registering the global statistics\033[0m")
+
+        # Moved logic to fully destroy agent after cleanup
+        if self.agent_instance is not None:
+            with timeout(seconds=5, error_message=f"ERROR unable to delete agent_instance {self.agent_instance}"):
+                self.agent_instance = None
 
 
 def main():
@@ -402,7 +423,7 @@ def main():
                        help='Run with debug output', default=0)
     parser.add_argument('--record', type=str, default='',
                         help='Use CARLA recording feature to create a recording of the scenario')
-    parser.add_argument('--timeout', default=300.0, type=float,
+    parser.add_argument('--timeout', default=3000.0, type=float,
                         help='Set the CARLA client timeout value in seconds')
 
     # simulation setup

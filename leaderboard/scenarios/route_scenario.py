@@ -260,7 +260,7 @@ class RouteScenario(BasicScenario):
 
         return all_scenario_classes
 
-    def _build_scenarios(self, world, ego_vehicle, scenario_definitions, scenarios_per_tick=5, timeout=300, debug=False):
+    def _build_scenarios(self, world, ego_vehicle, scenario_definitions, scenarios_per_tick=5, timeout=3000, debug=False):
         """
         Initializes the class of all the scenarios that will be present in the route.
         If a class fails to be initialized, a warning is printed but the route execution isn't stopped
