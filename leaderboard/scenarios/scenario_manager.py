@@ -14,6 +14,8 @@ from __future__ import print_function
 import signal
 import sys
 import time
+from math import sqrt
+from os import getenv
 
 import py_trees
 import carla
@@ -189,6 +191,13 @@ class ScenarioManager(object):
                 raise AgentError(e)
 
             self._watchdog.resume()
+
+            speed_limit = getenv('CARLA_SPEED_LIMIT')
+            vel_vec = self.ego_vehicles[0].get_velocity()
+            veh_speed = sqrt(vel_vec.x**2 + vel_vec.y**2 + vel_vec.z**2)
+            if speed_limit is not None:
+                if veh_speed > float(speed_limit):
+                    ego_action.throttle = 0.0
             self.ego_vehicles[0].apply_control(ego_action)
 
             # Tick scenario. Add the ego control to the blackboard in case some behaviors want to change it

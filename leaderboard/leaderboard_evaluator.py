@@ -45,6 +45,21 @@ sensors_to_icons = {
     'sensor.speedometer':       'carla_speedometer'
 }
 
+
+class timeout:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+    def handle_timeout(self, _signum, _frame):
+        print(self.error_message)
+        raise TimeoutError(self.error_message)
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
+
+
 class LeaderboardEvaluator(object):
     """
     Main class of the Leaderboard. Everything is handled from here,
@@ -241,6 +256,7 @@ class LeaderboardEvaluator(object):
         self.statistics_manager.compute_route_statistics(
             route_index, self.manager.scenario_duration_system, self.manager.scenario_duration_game, crash_message
         )
+        print("\033[1m> DONE Registering the route statistics\033[0m")
 
     def _load_and_run_scenario(self, args, config):
         """
@@ -415,6 +431,12 @@ class LeaderboardEvaluator(object):
             print("\033[1m> Registering the global statistics\033[0m")
             self.statistics_manager.compute_global_statistics()
             self.statistics_manager.validate_and_write_statistics(self.sensors_initialized, crashed)
+            print("\033[1m> DONE Registering the global statistics\033[0m")
+
+            # Moved logic to fully destroy agent after cleanup
+            if self.agent_instance is not None:
+                with timeout(seconds=5, error_message=f"ERROR unable to delete agent_instance {self.agent_instance}"):
+                    self.agent_instance = None
 
         return crashed
 
@@ -435,7 +457,7 @@ def main():
                         help='Run with debug output', default=0)
     parser.add_argument('--record', type=str, default='',
                         help='Use CARLA recording feature to create a recording of the scenario')
-    parser.add_argument('--timeout', default=300.0, type=float,
+    parser.add_argument('--timeout', default=3000.0, type=float,
                         help='Set the CARLA client timeout value in seconds')
 
     # simulation setup
