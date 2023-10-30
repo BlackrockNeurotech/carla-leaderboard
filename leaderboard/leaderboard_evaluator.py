@@ -190,7 +190,7 @@ class LeaderboardEvaluator(object):
             synchronous_mode = True,
             fixed_delta_seconds = 1.0 / self.frame_rate,
             deterministic_ragdolls = True,
-            spectator_as_ego = False
+            # spectator_as_ego = False
         )
         client.get_world().apply_settings(settings)
 
